@@ -1,0 +1,83 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; }
+  html { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+  body { margin: 0; background-color: #F8FAFC; }
+}
+
+@layer components {
+  .label-sm {
+    @apply text-xs font-medium uppercase tracking-widest;
+  }
+}
+
+/* Hidden on screen, shown on print */
+.print-only { display: none; }
+
+/* Smooth rendering */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Print Styles ── */
+@media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .no-print { display: none !important; }
+  .print-only { display: block !important; }
+
+  body {
+    background: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Flatten full app layout */
+  #root > .flex {
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Hide sidebar & topbar */
+  aside,
+  header { display: none !important; }
+
+  /* Full-width main */
+  main {
+    padding: 16mm 18mm !important;
+    max-width: none !important;
+    width: 100% !important;
+  }
+
+  /* Only show result card in 2-col layout */
+  .calc-grid { display: block !important; }
+  .calc-grid > .form-card { display: none !important; }
+  .calc-grid > .result-card {
+    width: 100% !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: none !important;
+    border-radius: 12px !important;
+  }
+
+  /* Preserve teal total row */
+  .result-total-row {
+    background-color: #1B4E4D !important;
+    color: white !important;
+  }
+
+  /* Avoid mid-content page breaks */
+  .result-breakdown { page-break-inside: avoid; break-inside: avoid; }
+
+  footer { display: none !important; }
+}
