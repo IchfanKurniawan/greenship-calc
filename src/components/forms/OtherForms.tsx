@@ -111,7 +111,7 @@ interface HomesBFormProps { onResult: (r: CalculationResult | null) => void; }
 
 const emptyType = (): HomeType => ({
   id: Math.random().toString(36).slice(2),
-  name: '', units: 0,
+  name: '', units: 0, floorArea: 0,
 });
 
 export const HomesBForm: React.FC<HomesBFormProps> = ({ onResult }) => {
@@ -127,16 +127,18 @@ export const HomesBForm: React.FC<HomesBFormProps> = ({ onResult }) => {
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Error'); onResult(null);
     }
-  }, []);
+  }, [onResult]);
 
-  useEffect(() => { recalculate(types); }, [types]);
+  useEffect(() => { recalculate(types); }, [types, recalculate]);
 
-  const updateType = (id: string, field: 'name' | 'units', value: string) => {
-    setTypes(prev => prev.map(t =>
-      t.id === id
-        ? { ...t, [field]: field === 'units' ? (parseInt(value) || 0) : value }
-        : t
-    ));
+  const updateType = (id: string, field: 'name' | 'units' | 'floorArea', value: string) => {
+    setTypes(prev => prev.map(t => {
+      if (t.id !== id) return t;
+      if (field === 'name') return { ...t, name: value };
+      if (field === 'units') return { ...t, units: parseInt(value) || 0 };
+      if (field === 'floorArea') return { ...t, floorArea: parseFloat(value) || 0 };
+      return t;
+    }));
   };
 
   const addType = () => {
@@ -151,6 +153,19 @@ export const HomesBForm: React.FC<HomesBFormProps> = ({ onResult }) => {
 
   const activeTypes = types.filter(t => t.units > 0);
 
+  // Live weighted average for display
+  const withArea = activeTypes.filter(t => t.floorArea > 0);
+  const totalUnits = withArea.reduce((s, t) => s + t.units, 0);
+  const weightedAvg = totalUnits > 0
+    ? withArea.reduce((s, t) => s + t.units * t.floorArea, 0) / totalUnits
+    : null;
+  const multiplierLabel = weightedAvg === null ? '—'
+    : weightedAvg <= 100 ? '×1.000 (Kecil)'
+    : weightedAvg <= 200 ? '×1.100 (Menengah)'
+    : '×1.175 (Besar)';
+
+  const inputClass = "w-full h-9 px-2 border border-slate-200 rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#1B4E4D]/30 focus:border-[#1B4E4D] transition-all";
+
   return (
     <div className="flex flex-col gap-4">
       {error && (
@@ -160,53 +175,63 @@ export const HomesBForm: React.FC<HomesBFormProps> = ({ onResult }) => {
       )}
 
       <div>
-        <div className="grid grid-cols-12 gap-2 mb-2 px-1">
-          <span className="col-span-6 label-sm text-slate-400">Nama Tipe</span>
-          <span className="col-span-4 label-sm text-slate-400">Jumlah Unit</span>
-          <span className="col-span-2"></span>
+        {/* Column headers */}
+        <div className="grid gap-1.5 mb-1.5 px-1" style={{ gridTemplateColumns: '1.2rem 1fr 4rem 4rem 1.5rem' }}>
+          <span></span>
+          <span className="label-sm text-slate-400">Nama Tipe</span>
+          <span className="label-sm text-slate-400 text-center">Unit</span>
+          <span className="label-sm text-slate-400 text-center">Luas (m²)</span>
+          <span></span>
         </div>
 
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-1.5">
           {types.map((type, idx) => {
             const activeRank = activeTypes.findIndex(a => a.id === type.id);
             const discLabel = activeRank === 0 ? '100%' : activeRank <= 2 ? '75%' : activeRank > 2 ? '60%' : '';
+            const isActive = type.units > 0;
+
             return (
-              <div key={type.id} className={`grid grid-cols-12 gap-2 items-center p-2 rounded-lg border transition-all ${type.units > 0 ? 'bg-[#F0FBF0] border-[#1B4E4D]/15' : 'bg-slate-50 border-slate-100'}`}>
-                <div className="col-span-1 flex items-center justify-center">
-                  <span className="label-sm text-slate-400">{idx + 1}</span>
-                </div>
-                <div className="col-span-5">
-                  <input
-                    type="text"
-                    value={type.name}
-                    onChange={e => updateType(type.id, 'name', e.target.value.slice(0, 50))}
-                    placeholder={`Tipe ${idx + 1}`}
-                    className="w-full h-9 px-3 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1B4E4D]/30 focus:border-[#1B4E4D] transition-all"
-                  />
-                </div>
-                <div className="col-span-4">
-                  <input
-                    type="number"
-                    value={type.units || ''}
+              <div key={type.id}
+                className={`grid gap-1.5 items-center p-1.5 rounded-lg border transition-all ${isActive ? 'bg-[#F0FBF0] border-[#1B4E4D]/15' : 'bg-slate-50 border-slate-100'}`}
+                style={{ gridTemplateColumns: '1.2rem 1fr 4rem 4rem 1.5rem' }}>
+
+                {/* Index */}
+                <span className="label-sm text-slate-400 text-center">{idx + 1}</span>
+
+                {/* Name */}
+                <input type="text" value={type.name}
+                  onChange={e => updateType(type.id, 'name', e.target.value.slice(0, 50))}
+                  placeholder={`Tipe ${idx + 1}`}
+                  className={inputClass} />
+
+                {/* Units */}
+                <div className="relative">
+                  <input type="number" value={type.units || ''}
                     onChange={e => updateType(type.id, 'units', e.target.value)}
-                    placeholder="0"
-                    min="0"
-                    step="1"
-                    className="w-full h-9 px-3 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1B4E4D]/30 focus:border-[#1B4E4D] transition-all"
-                    style={{ fontVariantNumeric: 'tabular-nums' }}
-                  />
-                </div>
-                <div className="col-span-2 flex items-center justify-between">
-                  {type.units > 0 && discLabel && (
-                    <span className="label-sm text-[#1B4E4D]">{discLabel}</span>
-                  )}
-                  {types.length > 1 && (
-                    <button onClick={() => removeType(type.id)}
-                      className="ml-auto p-1 text-slate-300 hover:text-red-400 transition-colors rounded">
-                      <span className="material-symbols-outlined text-base">close</span>
-                    </button>
+                    placeholder="0" min="0" step="1"
+                    className={inputClass}
+                    style={{ fontVariantNumeric: 'tabular-nums' }} />
+                  {isActive && discLabel && (
+                    <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[9px] font-semibold text-[#1B4E4D] bg-[#D3FEAB] px-1 rounded whitespace-nowrap">
+                      {discLabel}
+                    </span>
                   )}
                 </div>
+
+                {/* Floor area */}
+                <input type="number" value={type.floorArea || ''}
+                  onChange={e => updateType(type.id, 'floorArea', e.target.value)}
+                  placeholder="0.000" min="0" step="0.001"
+                  className={inputClass}
+                  style={{ fontVariantNumeric: 'tabular-nums' }} />
+
+                {/* Remove */}
+                {types.length > 1 ? (
+                  <button onClick={() => removeType(type.id)}
+                    className="flex items-center justify-center p-0.5 text-slate-300 hover:text-red-400 transition-colors rounded">
+                    <span className="material-symbols-outlined text-sm">close</span>
+                  </button>
+                ) : <span />}
               </div>
             );
           })}
@@ -221,17 +246,27 @@ export const HomesBForm: React.FC<HomesBFormProps> = ({ onResult }) => {
         </button>
       )}
 
-      <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100">
-        {[
-          { label: 'Tipe Aktif', value: activeTypes.length.toString() },
-          { label: 'Cap Sertifikasi', value: 'Rp 200 Jt' },
-        ].map(s => (
-          <div key={s.label} className="bg-slate-50 rounded-lg p-3 text-center">
-            <p className="text-xs text-slate-400 mb-1">{s.label}</p>
-            <p className="text-sm font-medium text-[#1B4E4D]">{s.value}</p>
-          </div>
-        ))}
+      {/* Summary chips */}
+      <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100">
+        <div className="bg-slate-50 rounded-lg p-2.5 text-center">
+          <p className="text-xs text-slate-400 mb-0.5">Tipe Aktif</p>
+          <p className="text-sm font-semibold text-[#1B4E4D]">{activeTypes.length}</p>
+        </div>
+        <div className="bg-slate-50 rounded-lg p-2.5 text-center">
+          <p className="text-xs text-slate-400 mb-0.5">Cap Sertifikasi</p>
+          <p className="text-sm font-semibold text-[#1B4E4D]">Rp 250 Jt</p>
+        </div>
+        <div className={`rounded-lg p-2.5 text-center ${weightedAvg !== null ? 'bg-[#F0FBF0]' : 'bg-slate-50'}`}>
+          <p className="text-xs text-slate-400 mb-0.5">Multiplier</p>
+          <p className="text-xs font-semibold text-[#1B4E4D] leading-tight">{multiplierLabel}</p>
+        </div>
       </div>
+
+      {weightedAvg !== null && (
+        <p className="text-xs text-slate-400 -mt-1">
+          Rata-rata tertimbang: <span className="font-medium text-[#1B4E4D]">{weightedAvg.toFixed(1)} m²</span>
+        </p>
+      )}
     </div>
   );
 };

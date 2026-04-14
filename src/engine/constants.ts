@@ -46,7 +46,14 @@ export const TS_MIN_AREA            = 250;
 
 // ── Homes ─────────────────────────────────────
 export const HOMES_REG = 5_000_000;   // IDR — flat for both tracks
-export const HOMES_CAP = 200_000_000; // IDR — cert subtotal cap (Track B only)
+export const HOMES_CAP = 250_000_000; // IDR — cert subtotal cap (Track B only) — updated v1.3
+
+// Track B — weighted average floor area multipliers
+export const HOMES_B_MULTIPLIERS = [
+  { maxArea: 100,      multiplier: 1.000, label: 'Kecil (≤ 100 m²)' },
+  { maxArea: 200,      multiplier: 1.100, label: 'Menengah (101–200 m²)' },
+  { maxArea: Infinity, multiplier: 1.175, label: 'Besar (> 200 m²)' },
+] as const;
 
 // Track A lookup
 export const HOMES_A_SMALL_FEE  = 35_000_000; // floor_area < 100

@@ -69,7 +69,18 @@ const ResultPanel: React.FC<ResultPanelProps> = ({ result }) => {
             <p className="text-sm font-semibold" style={{ color: '#1B4E4D' }}>Rincian Biaya</p>
           </div>
           {result.breakdown.map((item, i) => {
-            if (item.amount === null) return null;
+            if (item.amount === null) {
+              // Informational row (e.g. multiplier note)
+              return (
+                <div key={i} className="px-4 py-2.5 flex items-start gap-3" style={{ borderTop: '1px solid #F8FAFC', background: '#F0FBF0' }}>
+                  <span className="material-symbols-outlined text-sm shrink-0 mt-0.5" style={{ color: '#1B4E4D' }}>info</span>
+                  <div>
+                    <p className="text-xs font-medium" style={{ color: '#1B4E4D' }}>{item.label}</p>
+                    {item.note && <p className="text-xs mt-0.5" style={{ color: '#94A3B8' }}>{item.note}</p>}
+                  </div>
+                </div>
+              );
+            }
             const isTotal    = item.isTotal;
             const isSubtotal = item.isSubtotal;
             const isWarning  = item.isWarning && !isTotal;

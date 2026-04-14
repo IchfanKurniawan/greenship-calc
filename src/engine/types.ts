@@ -19,7 +19,8 @@ export type NHUnit = 'sqm' | 'ha';
 export interface HomeType {
   id: string;
   name: string;
-  units: number; // integer ≥ 0
+  units: number;     // integer ≥ 0
+  floorArea: number; // m² per unit — used for weighted average multiplier
 }
 
 export interface BreakdownItem {
