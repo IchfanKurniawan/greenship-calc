@@ -24,7 +24,7 @@ All fee logic lives in the TypeScript engine under `src/engine/`. The React laye
 | Existing Building | EB | Bracket table + high-area surcharge | Area (m2), building function |
 | Interior Space | IS | Bracket table | Area (m2), building function |
 | Transit Station | TS | Bracket table + high-area surcharge | Area (m2) |
-| Homes - Individual | HOMES_A | Category lookup + flat registration fee | Floor area (m2) |
+| Homes - Individual | HOMES_A | Category lookup | Floor area (m2) |
 | Homes - Developer | HOMES_B | Per-type discount + surcharge + cap + weighted-area multiplier | Unit types, floor area per type |
 | Neighborhood - Plan | NH_PLAN | Linear interpolation by hectare band | Area (ha or m2) |
 | Neighborhood - Built | NH_BUILT | Linear interpolation by hectare band | Area (ha or m2) |
@@ -86,12 +86,6 @@ UI rule:
 
 ### 3.4 Homes - Individual
 
-Registration fee:
-
-```text
-REG = 5,000,000
-```
-
 Certification fee:
 
 | Floor area | Cert fee |
@@ -103,18 +97,17 @@ Certification fee:
 Total:
 
 ```text
-total = certFee + REG
+total = certFee
 ```
 
 UI rule:
-- The registration fee is included in the final total but not shown as a separate breakdown row.
+- The Homes A estimate shows certification price only.
 
 ### 3.5 Homes - Developer
 
-Registration fee and certification cap:
+Certification cap:
 
 ```text
-REG = 5,000,000
 CAP = 250,000,000
 ```
 
@@ -162,14 +155,14 @@ weightedAvg = sum(units_i x floorArea_i) / sum(units_i)
 Step 6 - final total:
 
 ```text
-total = round((certAfterCap + totalSurcharge + REG) x multiplier)
+total = round((certAfterCap + totalSurcharge) x multiplier)
 ```
 
 Validation rule:
 - Every active type must have `floorArea > 0` before calculation can run.
 
 UI rules:
-- The registration fee is included in the final total but not shown as a separate breakdown row.
+- The Homes B estimate shows certification price only.
 - If any active type is missing floor area, the calculator does not return a result.
 
 ### 3.6 Neighborhood

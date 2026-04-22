@@ -74,8 +74,10 @@ src/
 - `NB`, `EB`, `TS`, and `NH` apply a total fee cap of Rp 500,000,000.
 - When the final total reaches Rp 500,000,000, the surcharge row is hidden from the displayed breakdown.
 - Homes A uses `<= 100 m2`, `101-200 m2`, and `> 200 m2`.
+- Homes A shows certification-only pricing and excludes the registration fee from the estimate.
 - Homes B requires floor area for every active type before any total is calculated.
 - Homes B applies a certification subtotal cap of Rp 250,000,000 before the weighted-area multiplier.
+- Homes B shows certification-only pricing and excludes the registration fee from the estimate.
 
 ## Deployment
 

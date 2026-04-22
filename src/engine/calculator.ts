@@ -12,7 +12,6 @@ import {
   TS_HIGH_AREA_THRESHOLD,
   TS_HIGH_AREA_RATE,
   TS_MIN_AREA,
-  HOMES_REG,
   HOMES_CAP,
   HOMES_B_MULTIPLIERS,
   HOMES_A_SMALL_FEE,
@@ -244,7 +243,7 @@ export function calculateHomesA(input: HomesAInput): CalculationResult {
     category = 'Menengah (101-200 m2)';
   }
 
-  const total = certFee + HOMES_REG;
+  const total = certFee;
 
   return {
     scheme: 'HOMES_A',
@@ -362,7 +361,7 @@ export function calculateHomesB(input: HomesBInput): CalculationResult {
     note: `Rata-rata tertimbang: ${weightedAvg.toFixed(1)} m2 -> faktor x${multiplier.toFixed(3)}`,
   });
 
-  const total = Math.round((certAfterCap + totalSurcharge + HOMES_REG) * multiplier);
+  const total = Math.round((certAfterCap + totalSurcharge) * multiplier);
   breakdown.push({ label: 'Total', amount: total, isTotal: true });
 
   return {

@@ -40,7 +40,6 @@ export const TS_HIGH_AREA_RATE = 1_500;
 export const TS_MIN_AREA = 250;
 
 // Homes
-export const HOMES_REG = 5_000_000;
 export const HOMES_CAP = 250_000_000;
 
 export const HOMES_B_MULTIPLIERS = [
