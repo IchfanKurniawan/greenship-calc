@@ -1,73 +1,82 @@
-# React + TypeScript + Vite
+# GREENSHIP Fee Calculator
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A Vite + React + TypeScript calculator for estimating GREENSHIP certification fees across the supported GBCI schemes.
 
-Currently, two official plugins are available:
+## What this project does
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+The app calculates estimated certification fees for:
 
-## React Compiler
+- New Building (`NB`)
+- Existing Building (`EB`)
+- Interior Space (`IS`)
+- Transit Station (`TS`)
+- Homes - Individual (`HOMES_A`)
+- Homes - Developer (`HOMES_B`)
+- Neighborhood - Plan (`NH_PLAN`)
+- Neighborhood - Built (`NH_BUILT`)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+The fee engine is framework-agnostic and lives in `src/engine/`. The React UI in `src/components/` handles input, validation, and presentation.
 
-## Expanding the ESLint configuration
+## Quick start
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Open the local Vite URL shown in the terminal to use the calculator.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Available scripts
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run dev
+npm run build
+npm run lint
+npm run preview
 ```
+
+## Project structure
+
+```text
+src/
+├── components/
+│   ├── forms/
+│   │   ├── NBEBForm.tsx
+│   │   ├── NumberInput.tsx
+│   │   └── OtherForms.tsx
+│   ├── layout/
+│   │   ├── Footer.tsx
+│   │   └── SideNav.tsx
+│   └── results/
+│       └── ResultPanel.tsx
+├── engine/
+│   ├── calculator.ts
+│   ├── constants.ts
+│   └── types.ts
+├── App.tsx
+├── index.css
+└── main.tsx
+```
+
+## Key files
+
+- `src/engine/constants.ts`: pricing tables, caps, and thresholds
+- `src/engine/calculator.ts`: pure calculation functions for every scheme
+- `src/engine/types.ts`: shared engine and UI types
+- `src/components/forms/NBEBForm.tsx`: New Building / Existing Building form
+- `src/components/forms/OtherForms.tsx`: IS, TS, Homes, and Neighborhood forms
+- `src/components/results/ResultPanel.tsx`: result rendering and print CTA
+- `doc.md`: project notes, pricing rules, and current architecture
+- `DISCREPANCY_AUDIT.md`: severity-first audit report of the previous review pass
+
+## Important behavior notes
+
+- `NB`, `EB`, `TS`, and `NH` apply a total fee cap of Rp 500,000,000.
+- When the final total reaches Rp 500,000,000, the surcharge row is hidden from the displayed breakdown.
+- Homes A uses `<= 100 m2`, `101-200 m2`, and `> 200 m2`.
+- Homes B requires floor area for every active type before any total is calculated.
+- Homes B applies a certification subtotal cap of Rp 250,000,000 before the weighted-area multiplier.
+
+## Deployment
+
+The app is configured for static hosting and includes Netlify settings in `netlify.toml`.

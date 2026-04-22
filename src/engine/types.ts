@@ -40,7 +40,6 @@ export interface CalculationResult {
   breakdown: BreakdownItem[];
   warnings: string[];
   edgeCases: string[];
-  maxFeeForRing: number; // visual reference max for the progress ring
 }
 
 // Input shapes per scheme

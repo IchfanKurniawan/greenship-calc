@@ -1,297 +1,281 @@
-# Greenship Certification Pricing Calculator — Project Plan
+# Greenship Certification Pricing Calculator
 
-**Version:** 1.1 (Updated with GBCI clarifications)
-**Date:** 2026-04-09
-**Design Reference:** `design.md` (Carbon Intelligence Design System)
-**Logic Reference:** `documentation.md` (GREENSHIP Certification Pricing)
+Version: 1.4
+Date: 2026-04-22
 
----
+Primary implementation references:
+- `src/engine/constants.ts`
+- `src/engine/calculator.ts`
+- `src/components/forms/NBEBForm.tsx`
+- `src/components/forms/OtherForms.tsx`
+- `src/components/results/ResultPanel.tsx`
 
-## Changelog v1.3
+## 1. Overview
 
-| # | Change | Detail |
-|---|---|---|
-| 1 | Homes B — weighted average multiplier | New input: `floorArea` per type. After computing base total, multiply by floor-area category factor |
-| 2 | Homes B — cap raised | Certification subtotal cap: 200M → **250M** |
-| 3 | Registration fee display | "Biaya Pendaftaran" row hidden from breakdown in Homes A and Homes B (total unchanged) |
+This project is a single-page calculator for estimating GREENSHIP certification fees across the supported schemes. The app is built with Vite, React, TypeScript, and Tailwind CSS, and it is deployed as a static site.
 
-### Homes B — Floor Area Multiplier (v1.3)
+All fee logic lives in the TypeScript engine under `src/engine/`. The React layer is responsible for collecting user input, validating it, and rendering the fee breakdown.
 
-Weighted average floor area is computed across all active types:
+## 2. Supported schemes
 
+| Scheme | Code | Pricing model | Key inputs |
+| --- | --- | --- | --- |
+| New Building | NB | Bracket table + high-area surcharge | Area (m2), building function |
+| Existing Building | EB | Bracket table + high-area surcharge | Area (m2), building function |
+| Interior Space | IS | Bracket table | Area (m2), building function |
+| Transit Station | TS | Bracket table + high-area surcharge | Area (m2) |
+| Homes - Individual | HOMES_A | Category lookup + flat registration fee | Floor area (m2) |
+| Homes - Developer | HOMES_B | Per-type discount + surcharge + cap + weighted-area multiplier | Unit types, floor area per type |
+| Neighborhood - Plan | NH_PLAN | Linear interpolation by hectare band | Area (ha or m2) |
+| Neighborhood - Built | NH_BUILT | Linear interpolation by hectare band | Area (ha or m2) |
+
+## 3. Pricing rules
+
+### 3.1 NB / EB
+
+| Area (m2) | Office | Commercial / Healthcare / Hospitality |
+| --- | --- | --- |
+| 250 - 2,749 | 130,000,000 | 150,000,000 |
+| 2,750 - 9,999 | 152,500,000 | 175,000,000 |
+| 10,000 - 29,999 | 175,000,000 | 205,000,000 |
+| 30,000 - 79,999 | 210,000,000 | 245,000,000 |
+| 80,000 - 149,999 | 245,000,000 | 285,000,000 |
+| >= 150,000 | Base fee of the last bracket + Rp 1,500 x (area - 150,000) |
+
+Total fee cap:
+
+```text
+total = min(baseFee + surcharge, 500,000,000)
 ```
-totalUnits   = Σ units_i  (active types with floorArea > 0)
-weightedAvg  = Σ (units_i × floorArea_i) / totalUnits
-```
 
-Then the **entire final total** (cert after cap + surcharge + REG) is multiplied:
+UI rule:
+- If the final total reaches Rp 500,000,000, the surcharge row is hidden from the breakdown.
 
-| Category | Condition | Multiplier |
-|---|---|---|
-| Small | weightedAvg ≤ 100 m² | 1.000 |
-| Medium | 101 ≤ weightedAvg ≤ 200 m² | 1.100 |
-| Large | weightedAvg > 200 m² | 1.175 |
+### 3.2 Interior Space
 
-```
-finalTotal = round((certAfterCap + totalSurcharge + REG) × multiplier)
-```
+| Area (m2) | Office | Commercial / Healthcare / Hospitality |
+| --- | --- | --- |
+| 25 - 249 | 40,000,000 | 45,500,000 |
+| 250 - 749 | 47,500,000 | 55,000,000 |
+| 750 - 1,499 | 52,500,000 | 62,500,000 |
+| 1,500 - 2,499 | 67,500,000 | 72,500,000 |
+| 2,500 - 9,999 | 85,000,000 | 95,000,000 |
+| >= 10,000 | 110,000,000 | 122,500,000 |
 
-If no active type has floor area filled, multiplier defaults to 1.0 with a warning.
-
-## Changelog v1.2
-
-| # | Change | Detail |
-|---|---|---|
-| 1 | Logo removed | Pure "GREENSHIP" typography used across all UI surfaces |
-| 2 | Favicon | White calculator SVG icon on teal background |
-| 3 | Total price cap | NB, EB, TS, NH: total fee capped at **Rp 500.000.000** (applies to final sum, not just surcharge) |
-| 4 | Homes B UI | Removed "Biaya Daftar" summary chip from the type input panel |
-| 5 | Homes A — 100 m² | Officially assigned to Small category (≤ 100 m²); edge case note removed |
-
-Two ambiguities from the peer review were resolved with GBCI input:
-
-| # | Ambiguity | Resolution |
-|---|---|---|
-| 1 | NH >400 ha surcharge — total area or excess? | **Excess only.** Rate applies per ha **above 400**. Max additional fee is **Rp 500,000,000** |
-| 2 | NH band boundary — area = 200.x falls into which band? | **Round up to 201.** If `area > 200`, force effective interpolation area to `max(area, 201)`, placing it in band 2 |
-
----
-
-## 1. Project Overview
-
-A single-page web application (Vite + React + TypeScript + Tailwind CSS) that calculates GREENSHIP certification fees across **six certification schemes**. All pricing logic lives in a pure TypeScript engine (no framework coupling). Deployed on Netlify as a static site.
-
-**Design language:** Carbon Intelligence "Veridian Metric" — Deep Teal sidebar, Mint Glow accents, Inter typeface, 8px radius cards.
-
----
-
-## 2. Certification Schemes & Routing
-
-| Scheme | Code | Pricing Model | Key Inputs |
-|---|---|---|---|
-| New Building | NB | Bracket table + area surcharge | Area (m²), Building Function |
-| Existing Building | EB | Bracket table + area surcharge | Area (m²), Building Function |
-| Interior Space | IS | Bracket table (no surcharge) | Area (m²), Building Function |
-| Transit Station | TS | Single-column bracket + area surcharge | Area (m²) |
-| Homes — Individual | HOMES_A | Lookup + flat registration fee | Floor Area (m²) |
-| Homes — Developer | HOMES_B | Per-type discount + surcharge + cap + registration | Unit types (up to 20) |
-| Neighborhood — Plan | NH_PLAN | Linear interpolation by ha band | Area (ha or m²) |
-| Neighborhood — Built | NH_BUILT | Linear interpolation by ha band | Area (ha or m²) |
-
----
-
-## 3. Pricing Logic (Authoritative Reference)
-
-### 3.1 NB / EB (shared bracket table)
-
-| Area (m²) | Office (M IDR) | Commercial / Healthcare / Hospitality (M IDR) |
-|---|---|---|
-| 250 – 2,749 | 130 | 150 |
-| 2,750 – 9,999 | 152.5 | 175 |
-| 10,000 – 29,999 | 175 | 205 |
-| 30,000 – 79,999 | 210 | 245 |
-| 80,000 – 149,999 | 245 | 285 |
-| ≥ 150,000 | base + Rp 1,500 × (area − 150,000) |
-
-**Total price cap (v1.2): `total = min(baseFee + surcharge, 500,000,000)`**
-
-### 3.2 IS (Interior Space)
-
-| Area (m²) | Office (M IDR) | Commercial / Healthcare / Hospitality (M IDR) |
-|---|---|---|
-| 25 – 249 | 40 | 45.5 |
-| 250 – 749 | 47.5 | 55 |
-| 750 – 1,499 | 52.5 | 62.5 |
-| 1,500 – 2,499 | 67.5 | 72.5 |
-| 2,500 – 9,999 | 85 | 95 |
-| ≥ 10,000 | 110 | 122.5 |
-
-No high-area surcharge for IS.
+Interior Space has no surcharge and no 500M total cap rule.
 
 ### 3.3 Transit Station
 
-| Area (m²) | Fee (M IDR) |
-|---|---|
-| 250 – 2,749 | 150 |
-| 2,750 – 9,999 | 175 |
-| 10,000 – 29,999 | 205 |
-| 30,000 – 79,999 | 245 |
-| 80,000 – 149,999 | 285 |
-| ≥ 150,000 | 285 base + Rp 1,500 × (area − 150,000) |
+| Area (m2) | Fee |
+| --- | --- |
+| 250 - 2,749 | 150,000,000 |
+| 2,750 - 9,999 | 175,000,000 |
+| 10,000 - 29,999 | 205,000,000 |
+| 30,000 - 79,999 | 245,000,000 |
+| 80,000 - 149,999 | 285,000,000 |
+| >= 150,000 | 285,000,000 + Rp 1,500 x (area - 150,000) |
 
-**Total price cap (v1.2): `total = min(baseFee + surcharge, 500,000,000)`**
+Total fee cap:
 
-### 3.4 Homes Track A (Individual)
+```text
+total = min(baseFee + surcharge, 500,000,000)
+```
 
-REG = Rp 5,000,000 (flat, always added)
+UI rule:
+- If the final total reaches Rp 500,000,000, the surcharge row is hidden from the breakdown.
 
-| Floor Area | Cert Fee |
-|---|---|
-| < 100 m² | 35,000,000 |
-| 101 – 200 m² | 42,000,000 |
-| > 200 m² | 50,000,000 |
+### 3.4 Homes - Individual
 
-**Total = cert_fee + 5,000,000**
+Registration fee:
 
-Edge case: exactly 100 m² is undefined in the source — show a GBCI confirmation note.
+```text
+REG = 5,000,000
+```
 
-### 3.5 Homes Track B (Developer/Cluster)
+Certification fee:
 
-REG = Rp 5,000,000 | CAP = Rp 250,000,000 (certification subtotal only) — updated v1.3
+| Floor area | Cert fee |
+| --- | --- |
+| <= 100 m2 | 35,000,000 |
+| 101 - 200 m2 | 42,000,000 |
+| > 200 m2 | 50,000,000 |
 
-**Step 1 — Base fee by units:**
+Total:
 
-| Units | Base Fee |
-|---|---|
-| ≤ 25 | 40,000,000 |
-| 26 – 100 | 45,000,000 |
+```text
+total = certFee + REG
+```
+
+UI rule:
+- The registration fee is included in the final total but not shown as a separate breakdown row.
+
+### 3.5 Homes - Developer
+
+Registration fee and certification cap:
+
+```text
+REG = 5,000,000
+CAP = 250,000,000
+```
+
+Step 1 - base fee by units:
+
+| Units | Base fee |
+| --- | --- |
+| <= 25 | 40,000,000 |
+| 26 - 100 | 45,000,000 |
 | > 100 | 52,000,000 |
 
-**Step 2 — Discount by active type rank:**
+Step 2 - discount by active type rank:
 
-| Rank | Discount |
-|---|---|
-| 1st | 100% |
-| 2nd | 75% |
-| 3rd | 75% |
-| 4th+ | 60% |
+| Rank | Discount multiplier |
+| --- | --- |
+| 1st | 1.00 |
+| 2nd | 0.75 |
+| 3rd | 0.75 |
+| 4th+ | 0.60 |
 
-**Step 3 — Surcharge (units > 9 only):**
-```
-surcharge = ROUND(√units, 0) × 1,000,000
-```
+Step 3 - surcharge for types with more than 9 units:
 
-**Step 4 — Cap:**
-```
-cert_after_cap = min(sum_discounted_fees, 200,000,000)
+```text
+surcharge = ROUND(sqrt(units), 0) x 1,000,000
 ```
 
-**Step 5 — Total:**
-```
-total = cert_after_cap + total_surcharge + 5,000,000
-```
+Step 4 - certification subtotal cap:
 
-### 3.6 Neighborhood — UPDATED (v1.1)
-
-Area measured in **hectares (ha)**. UI accepts m² or ha (converted to ha internally).
-
-#### Plan Phase
-
-| Area (ha) | Price Range (M IDR) |
-|---|---|
-| 10 – 200 | 73 – 85 |
-| 201 – 400 | 85.5 – 93.5 |
-| > 400 | Base = 93.5M (upper bound of band 2) + surcharge |
-
-**Surcharge >400 ha (CLARIFIED):**
-```
-extra = min((area - 400) × 200,000, 500,000,000)
-total = 93,500,000 + extra
+```text
+certAfterCap = min(sumDiscountedFees, 250,000,000)
 ```
 
-#### Built Phase
+Step 5 - weighted average floor-area multiplier:
 
-| Area (ha) | Price Range (M IDR) |
-|---|---|
-| 1 – 20 | 110 – 129 |
-| 21 – 50 | 130 – 153 |
-| 51 – 200 | 154 – 189 |
-| 201 – 400 | 190 – 212 |
-| > 400 | Base = 212M (upper bound of band 4) + surcharge |
-
-**Surcharge >400 ha (CLARIFIED):**
-```
-extra = min((area - 400) × 400,000, 500,000,000)
-total = 212,000,000 + extra
+```text
+weightedAvg = sum(units_i x floorArea_i) / sum(units_i)
 ```
 
-#### Interpolation Formula
+| Weighted average | Multiplier |
+| --- | --- |
+| <= 100 m2 | 1.000 |
+| 101 - 200 m2 | 1.100 |
+| > 200 m2 | 1.175 |
 
+Step 6 - final total:
+
+```text
+total = round((certAfterCap + totalSurcharge + REG) x multiplier)
 ```
-price = p1 + ((effectiveArea − a1) / (a2 − a1)) × (p2 − p1)
+
+Validation rule:
+- Every active type must have `floorArea > 0` before calculation can run.
+
+UI rules:
+- The registration fee is included in the final total but not shown as a separate breakdown row.
+- If any active type is missing floor area, the calculator does not return a result.
+
+### 3.6 Neighborhood
+
+Area is stored internally in hectares. The UI accepts either `ha` or `m2`.
+
+#### Plan
+
+| Area (ha) | Price range |
+| --- | --- |
+| 10 - 200 | 73,000,000 - 85,000,000 |
+| 201 - 400 | 85,500,000 - 93,500,000 |
+| > 400 | 93,500,000 + surcharge |
+
+Surcharge above 400 ha:
+
+```text
+surcharge = (area - 400) x 200,000
 ```
 
-#### Band Boundary Rule (CLARIFIED v1.1)
+#### Built
 
-At integer band boundaries, if `area > bandUpperLimit`, the effective interpolation area for the **next band** is clamped to `max(area, nextBandLower)`. This prevents negative interpolation results from fractional inputs near band edges.
+| Area (ha) | Price range |
+| --- | --- |
+| 1 - 20 | 110,000,000 - 129,000,000 |
+| 21 - 50 | 130,000,000 - 153,000,000 |
+| 51 - 200 | 154,000,000 - 189,000,000 |
+| 201 - 400 | 190,000,000 - 212,000,000 |
+| > 400 | 212,000,000 + surcharge |
 
-Examples:
-- NH Plan area = 200.5 ha → falls in band 2 (a1=201, a2=400) → effectiveArea = max(200.5, 201) = 201 → price = 85.5M
-- NH Built area = 20.3 ha → falls in band 2 (a1=21, a2=50) → effectiveArea = max(20.3, 21) = 21 → price = 130M
+Surcharge above 400 ha:
 
----
-
-## 4. Application Architecture
-
+```text
+surcharge = (area - 400) x 400,000
 ```
+
+Interpolation formula:
+
+```text
+price = p1 + ((effectiveArea - a1) / (a2 - a1)) x (p2 - p1)
+```
+
+Boundary rule:
+- If the area crosses an integer upper boundary with a fractional value, interpolation moves into the next band and clamps the effective interpolation area to the lower bound of that next band.
+- Example: `200.5 ha` in Plan is treated as band 2 with an effective area of `201`.
+- Example: `20.3 ha` in Built is treated as band 2 with an effective area of `21`.
+
+Total fee cap:
+
+```text
+total = min(baseFee + surcharge, 500,000,000)
+```
+
+UI rule:
+- If the final total reaches Rp 500,000,000, the surcharge row is hidden from the breakdown.
+
+## 4. Current application structure
+
+```text
 greenship-calc/
+├── public/
+│   └── favicon.svg
 ├── src/
-│   ├── engine/              # Pure TypeScript, no React deps
-│   │   ├── types.ts         # All TypeScript interfaces
-│   │   ├── constants.ts     # Pricing tables as readonly constants
-│   │   └── calculator.ts    # Pure calculation functions
 │   ├── components/
-│   │   ├── layout/
-│   │   │   ├── SideNav.tsx
-│   │   │   └── Footer.tsx
 │   │   ├── forms/
-│   │   │   ├── NumberInput.tsx   # Reusable validated input
 │   │   │   ├── NBEBForm.tsx
-│   │   │   ├── ISForm.tsx
-│   │   │   ├── TSForm.tsx
-│   │   │   ├── HomesAForm.tsx
-│   │   │   ├── HomesBForm.tsx
-│   │   │   └── NHForm.tsx
+│   │   │   ├── NumberInput.tsx
+│   │   │   └── OtherForms.tsx
+│   │   ├── layout/
+│   │   │   ├── Footer.tsx
+│   │   │   └── SideNav.tsx
 │   │   └── results/
-│   │       ├── ResultPanel.tsx
-│   │       └── ResultRing.tsx
+│   │       └── ResultPanel.tsx
+│   ├── engine/
+│   │   ├── calculator.ts
+│   │   ├── constants.ts
+│   │   └── types.ts
 │   ├── App.tsx
-│   ├── main.tsx
-│   └── index.css
+│   ├── index.css
+│   └── main.tsx
+├── DISCREPANCY_AUDIT.md
+├── README.md
 ├── index.html
+├── netlify.toml
 ├── package.json
-├── vite.config.ts
-├── tailwind.config.js
-└── netlify.toml
+└── vite.config.ts
 ```
 
----
+## 5. Validation and UI behavior
 
-## 5. Security & Maintainability
+- The forms compute validation and derived results directly from current input state.
+- Result panels update in real time as valid inputs become available.
+- `NB`, `EB`, `TS`, and `NH` hide surcharge rows when the final total reaches Rp 500,000,000.
+- Homes B requires floor area for every active type before any total is shown.
+- Neighborhood phase changes and unit changes clear the current area input to avoid cross-context errors.
+- The result panel includes:
+  - Total fee in IDR
+  - Fee breakdown
+  - Warning cards
+  - CTA to the GBCI form
+  - Print / PDF export via `window.print()`
 
-| Concern | Implementation |
-|---|---|
-| Input validation | All inputs sanitized: finite numbers, positive, within scheme-valid ranges |
-| XSS prevention | No `dangerouslySetInnerHTML`, no `eval()` |
-| TypeScript strict | `"strict": true` in tsconfig.json |
-| No SQL / backend | Pure frontend static site — no server, no DB |
-| Security headers | `netlify.toml` sets CSP, X-Frame-Options, X-Content-Type-Options |
-| Engine isolation | Engine functions are pure TS with no DOM/React coupling |
+## 6. Security and deployment notes
 
----
-
-## 6. UI Features
-
-- **Inputs:** Number inputs only (no sliders), step=0.001, 3 decimal precision for areas
-- **NH unit:** User selects m² or ha; converted to ha internally
-- **Prices:** Displayed in IDR (Indonesian Rupiah) with thousand separators
-- **Real-time calc:** Result updates as inputs change
-- **Post-result CTAs (bottom of screen):**
-  - "Daftar Sekarang!" → `https://gbcindonesia.org/certification/greenship/form`
-  - "Print" → `window.print()` with print-safe CSS preserving layout and colors
-- **Footer:** Copyright © 2026 GREEN BUILDING COUNCIL INDONESIA. All Rights Reserved.
-- **Responsive:** Mobile / Tablet / Desktop breakpoints
-
----
-
-## 7. Edge Cases & Flags
-
-| Case | Handling |
-|---|---|
-| Homes-A exactly 100 m² | Show amber note: "Batas 100 m² perlu konfirmasi GBCI" |
-| NB/EB/TS ≥ 150,000 m² | Add surcharge, show amber warning card |
-| NH > 400 ha | Calculate base + excess surcharge, show surcharge breakdown |
-| Homes-B 0-unit rows | Ignored silently in calculation |
-| Homes-B cert cap applied | Show "Cap Diterapkan" info pill in breakdown |
-| NH area in band boundary fraction | Clamp to next band lower limit for interpolation |
-| Input below scheme minimum | Show validation error, block calculation |
+- Frontend-only static application
+- No server, database, or SQL layer
+- Netlify headers are configured in `netlify.toml`
+- The app does not use `dangerouslySetInnerHTML`
+- Pricing logic is isolated in pure TypeScript for easier review and testing

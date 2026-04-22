@@ -46,14 +46,14 @@ export default function App() {
     if (!selectedScheme) return null;
     const props = { onResult: setResult };
     switch (selectedScheme) {
-      case 'NB':      return <NBEBForm scheme="NB" onResult={setResult} />;
-      case 'EB':      return <NBEBForm scheme="EB" onResult={setResult} />;
+      case 'NB':      return <NBEBForm key="NB" scheme="NB" onResult={setResult} />;
+      case 'EB':      return <NBEBForm key="EB" scheme="EB" onResult={setResult} />;
       case 'IS':      return <ISForm {...props} />;
       case 'TS':      return <TSForm {...props} />;
       case 'HOMES_A': return <HomesAForm {...props} />;
       case 'HOMES_B': return <HomesBForm {...props} />;
-      case 'NH_PLAN':
-      case 'NH_BUILT': return <NHForm {...props} />;
+      case 'NH_PLAN': return <NHForm key="NH_PLAN" initialPhase="plan" {...props} />;
+      case 'NH_BUILT': return <NHForm key="NH_BUILT" initialPhase="built" {...props} />;
     }
   };
 
